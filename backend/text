@@ -1,0 +1,167 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Grn;
+use App\Http\Requests\StoreGrnRequest;
+use App\Http\Requests\UpdateGrnRequest;
+use App\Models\Material;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Redirect;
+
+class GrnController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        $list = Grn::getAll();
+        return view('grn.index',compact('list'));
+    }
+
+    public function indexStock(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        $list = Material::getAvalStock();
+        return view('grn.index-stock', compact('list'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        return view('grn.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreGrnRequest $request): RedirectResponse
+    {
+        $data = $request->all();
+        try {
+            $id = Grn::insert($data['supplier_id'], $data['ref'], $data['netTotal'], $data['discount'], $data['discountedAmount'], $data['total']);
+            foreach ($data['material_id'] as $key => $mid){
+                Grn::insertStock($id, $mid, $data['qty'][$key], $data['rate'][$key], $data['stot'][$key]);
+                Material::incressSum($mid, $data['qty'][$key]);
+            }
+            $type = 'notify';
+            $massage = 'Glass Prices has been Updated successfully';
+        }catch (\Exception $exception){
+            $type = 'errorNotify';
+            $massage = 'Oops! An error has occurred, don\'t hesitate to contact the admin before things get worse';
+        }
+
+        return Redirect::route('newStore')->with($type, $massage);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Grn $grn, $id)
+    {
+        $list = $grn::getById(Crypt::decryptString($id));
+        $html = '<div class="row mb-3">
+                     <label class="col-md-2 text-end" for="supplier_name">
+                         Supplier Name
+                     </label>
+                     <label class="col-md-4 text-end" for="supplier_name">
+                         '.$list[0]->supplier_name.'-'.$list[0]->company_name.'
+                     </label>
+                     <label class="col-md-2 text-end" for="ref">
+                         Ref Number
+                     </label>
+                     <label class="col-md-4 text-end" for="ref">
+                          '.$list[0]->ref.'
+                     </label>
+                 </div>
+                 <br>
+                 <div class="row mb-3">
+                     <div class="col-md-12">
+                         <button class="btn btn-dark float-end" onclick="addRowGrnTbl()" type="button">+</button>
+                     </div>
+                 </div>
+                 <table class="table table-sm table-striped table-bordered-* table-hover">
+                     <thead>
+                     <tr>
+                         <th scope="col">X</th>
+                         <th scope="col" style="width: 650px">Material</th>
+                         <th scope="col">Qty</th>
+                         <th scope="col">Unit Price</th>
+                         <th scope="col">Sub Total</th>
+                     </tr>
+                     </thead>
+                     <tbody id="grnTbl">
+                     <tr>
+                         <th scope="col"></th>
+                         <td>
+                             <input aria-label="" class="form-control material_name" autocomplete="off" type="text" placeholder="search material" onfocus="materialSearch(this)" required="">
+                             <input type="hidden" class="material_id" name="material_id[]" required>
+                         </td>
+                         <td><input aria-label="" class="form-control qty" autocomplete="off" type="number" placeholder="0" name="qty[]" required=""></td>
+                         <td><input aria-label="" class="form-control rate" autocomplete="off" type="number" placeholder="0.00" name="rate[]" required=""></td>
+                         <td><input aria-label="" class="form-control stot" autocomplete="off" type="number" placeholder="0.00" name="stot[]" required="" readonly></td>
+                     </tr>
+                     </tbody>
+                     <tfoot>
+                     <tr>
+                         <td colspan="4">
+                             <button class="btn btn-dark" onclick="addRowGrnTbl()" type="button">+</button>
+                         </td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" value="0.00" id="netTotal" name="netTotal" readonly>
+                         </td>
+                     </tr>
+                     <tr>
+                         <th scope="row" class="text-end p-0" style="width: 10px" colspan="3">Discount</th>
+                         <td>
+                             <div class="input-group w-50">
+                                 <input type="number" class="form-control" placeholder="0" aria-label="margin" aria-describedby="basic-addon" value="0" id="discount" name="discount" onkeyup="disc(this.value)">
+                                 <span class="input-group-text" id="basic-addon">%</span>
+                             </div>
+                         </td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" name="discountedAmount" id="discountedAmount" readonly value="0.00">
+                         </td>
+                     </tr>
+                     <tr>
+                         <td colspan="4"></td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" value="0.00" id="total" name="total" readonly>
+                         </td>
+                     </tr>
+                     </tfoot>
+                 </table>';
+
+        return response()->json(base64_encode($html));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Grn $grn)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateGrnRequest $request, Grn $grn)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Grn $grn)
+    {
+        //
+    }
+}
