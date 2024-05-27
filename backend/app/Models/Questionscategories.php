@@ -7,5 +7,5 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 class Questionscategories extends Pivot
 {
     protected $table = 'questionscategory';
-    protected $fillable = ['name']
+    protected $fillable = ['name'];
 }

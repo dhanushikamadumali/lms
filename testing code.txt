@@ -1,0 +1,307 @@
+---------------correct this code-------------------
+<table class="table table-light" id="questable">
+    <tbody id="quesbody">
+
+    </tbody>
+</table>
+
+var count = 0;
+document.getElementById('question_add').addEventListener('click', function() {
+    count++;
+    var questionDiv = document.getElementById('quesbody');
+    var newTr = document.createElement('tr');
+    newTr.id = 'questype_' + count;
+
+    newTr.innerHTML = '<td>'+
+        '<label>Question Type</label>' +
+        '<select class="form-select" aria-label="Default select example" name="q_type" id="q_type_'+count+'">' +
+        '<option selected>Open this select menu</option>' +
+        '<option value="1">One</option>' +
+        '<option value="2">Two</option>' +
+        '<option value="3">Three</option>' +
+        '</select>'+
+        '<div id="qdetails_'+count+'">'+
+        '</div>'+
+        '</td>';
+
+    questionDiv.appendChild(newTr);
+});
+
+document.getElementById('quesbody').addEventListener('change', function(e) {
+    if (e.target && e.target.matches('select[name="q_type"]')) {
+        var qdetailsDiv = e.target.closest('tr').querySelector('div[id^="qdetails_"]');
+        var count = qdetailsDiv.id.split('_')[1]; // Get the count from the qdetails div id
+
+        var newDiv1 = document.createElement('div');
+        newDiv1.id = 'quesdetails_' + count;
+        newDiv1.classList.add('col-md-6');
+
+        if (e.target.value == 1) {
+            newDiv1.innerHTML = '<label>Multiple Choice Question</label>' +
+                '<textarea type="text" class="form-control" id="s_name_' + count + '"></textarea>' +
+                '<label>Select Category</label>' +
+                '<select class="form-select" aria-label="Default select example" name="q_type" id="q_type">' +
+                '<option selected>select category</option>' +
+                '<option value="1">Science</option>' +
+                '<option value="2">Maths</option>' +
+                '<option value="3">Arts</option>' +
+                '</select>' +
+                '<label>Answer</label>';
+        }
+        else if (e.target.value == 2) {
+            newDiv1.innerHTML = '<label>Single Choice Question</label>' +
+                '<input type="text" class="form-control" id="s_name_' + count + '">' +
+                '<label>Select Category</label>' +
+                '<select class="form-select" aria-label="Default select example" name="q_type" id="q_type">' +
+                '<option selected>select category</option>' +
+                '<option value="1">Science</option>' +
+                '<option value="2">Maths</option>' +
+                '<option value="3">Arts</option>' +
+                '</select>';
+        }
+
+        qdetailsDiv.appendChild(newDiv1);
+    }
+});
+-----------------------correct this code
+
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Grn;
+use App\Http\Requests\StoreGrnRequest;
+use App\Http\Requests\UpdateGrnRequest;
+use App\Models\Material;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
+use Illuminate\Foundation\Application;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Redirect;
+
+class GrnController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        $list = Grn::getAll();
+        return view('grn.index',compact('list'));
+    }
+
+    public function indexStock(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        $list = Material::getAvalStock();
+        return view('grn.index-stock', compact('list'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(): View|Application|Factory|\Illuminate\Contracts\Foundation\Application
+    {
+        return view('grn.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreGrnRequest $request): RedirectResponse
+    {
+        $data = $request->all();
+        try {
+            $id = Grn::insert($data['supplier_id'], $data['ref'], $data['netTotal'], $data['discount'], $data['discountedAmount'], $data['total']);
+            foreach ($data['material_id'] as $key => $mid){
+                Grn::insertStock($id, $mid, $data['qty'][$key], $data['rate'][$key], $data['stot'][$key]);
+                Material::incressSum($mid, $data['qty'][$key]);
+            }
+            $type = 'notify';
+            $massage = 'Glass Prices has been Updated successfully';
+        }catch (\Exception $exception){
+            $type = 'errorNotify';
+            $massage = 'Oops! An error has occurred, don\'t hesitate to contact the admin before things get worse';
+        }
+
+        return Redirect::route('newStore')->with($type, $massage);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Grn $grn, $id)
+    {
+        $list = $grn::getById(Crypt::decryptString($id));
+        $html = '<div class="row mb-3">
+                     <label class="col-md-2 text-end" for="supplier_name">
+                         Supplier Name
+                     </label>
+                     <label class="col-md-4 text-end" for="supplier_name">
+                         '.$list[0]->supplier_name.'-'.$list[0]->company_name.'
+                     </label>
+                     <label class="col-md-2 text-end" for="ref">
+                         Ref Number
+                     </label>
+                     <label class="col-md-4 text-end" for="ref">
+                          '.$list[0]->ref.'
+                     </label>
+                 </div>
+                 <br>
+                 <div class="row mb-3">
+                     <div class="col-md-12">
+                         <button class="btn btn-dark float-end" onclick="addRowGrnTbl()" type="button">+</button>
+                     </div>
+                 </div>
+                 <table class="table table-sm table-striped table-bordered-* table-hover">
+                     <thead>
+                     <tr>
+                         <th scope="col">X</th>
+                         <th scope="col" style="width: 650px">Material</th>
+                         <th scope="col">Qty</th>
+                         <th scope="col">Unit Price</th>
+                         <th scope="col">Sub Total</th>
+                     </tr>
+                     </thead>
+                     <tbody id="grnTbl">
+                     <tr>
+                         <th scope="col"></th>
+                         <td>
+                             <input aria-label="" class="form-control material_name" autocomplete="off" type="text" placeholder="search material" onfocus="materialSearch(this)" required="">
+                             <input type="hidden" class="material_id" name="material_id[]" required>
+                         </td>
+                         <td><input aria-label="" class="form-control qty" autocomplete="off" type="number" placeholder="0" name="qty[]" required=""></td>
+                         <td><input aria-label="" class="form-control rate" autocomplete="off" type="number" placeholder="0.00" name="rate[]" required=""></td>
+                         <td><input aria-label="" class="form-control stot" autocomplete="off" type="number" placeholder="0.00" name="stot[]" required="" readonly></td>
+                     </tr>
+                     </tbody>
+                     <tfoot>
+                     <tr>
+                         <td colspan="4">
+                             <button class="btn btn-dark" onclick="addRowGrnTbl()" type="button">+</button>
+                         </td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" value="0.00" id="netTotal" name="netTotal" readonly>
+                         </td>
+                     </tr>
+                     <tr>
+                         <th scope="row" class="text-end p-0" style="width: 10px" colspan="3">Discount</th>
+                         <td>
+                             <div class="input-group w-50">
+                                 <input type="number" class="form-control" placeholder="0" aria-label="margin" aria-describedby="basic-addon" value="0" id="discount" name="discount" onkeyup="disc(this.value)">
+                                 <span class="input-group-text" id="basic-addon">%</span>
+                             </div>
+                         </td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" name="discountedAmount" id="discountedAmount" readonly value="0.00">
+                         </td>
+                     </tr>
+                     <tr>
+                         <td colspan="4"></td>
+                         <td>
+                             <input aria-label="" type="number" class="form-control" value="0.00" id="total" name="total" readonly>
+                         </td>
+                     </tr>
+                     </tfoot>
+                 </table>';
+
+        return response()->json(base64_encode($html));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Grn $grn)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(UpdateGrnRequest $request, Grn $grn)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Grn $grn)
+    {
+        //
+    }
+}
+
+
+------------------------comands----------------------
+composer create-project laravel/laravel:^10.0 example-app
+
+php artisan make:model Flight -p -mcrR 
+------------boostrap auth install----------
+composer require laravel/ui
+php artisan ui bootstrap 
+ php artisan ui bootstrap --auth
+ -----------------boostrap auth icon installl---------
+npm install bootstrap-icons
+npm install 
+npm run dev
+
+https://icons.getbootstrap.com
+
+
+
+----------------403 forbinn error------------------
+https://stackoverflow.com/questions/47128903/errors-this-action-is-unauthorized-using-form-request-validations-in-laravel
+
+public function authorize()
+{
+    return true;
+}
+
+118
+
+I had a similar problem some time ago when starting to use Form Request classes for data validation. I noticed the following:
+
+If you are using Form Requests to validate data, then first of all, check that you set properly the authorization rule that will allow it to pass. This is handled by the authorize() method that must return a boolean, that by default is set to false:
+
+
+namespace App\Http\Requests\Users;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
+
+class UpdateUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     *
+     * @return bool
+     */
+    public function authorize()   
+    {
+        /** 
+         * By default it returns false, change it to 
+         * something like this if u are checking authentication
+         */
+        return Auth::check(); // <-------
+
+        /** 
+         * You could also use something more granular, like
+         * a policy rule or an admin validation like this:
+         * return auth()->user()->isAdmin();
+         * 
+         * Or just return true if you handle the authorisation
+         * anywhere else:
+         * return true;
+         */ 
+    }
+
+    public function rules()
+    {
+        // your validations...
+    }
+
+}

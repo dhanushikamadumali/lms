@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Questionscategories;
 use App\Http\Requests\StoreQuestionscategoriesRequest;
 use App\Http\Requests\UpdateQuestionscategoriesRequest;
+use Illuminate\Http\Request;
+use Exception;
 
 class QuestionscategoriesController extends Controller
 {
@@ -13,7 +15,7 @@ class QuestionscategoriesController extends Controller
      */
     public function index()
     {
-        //
+        return view('questioncategory.index');
     }
 
     /**
@@ -21,15 +23,22 @@ class QuestionscategoriesController extends Controller
      */
     public function create()
     {
-        return view('survey.addquscategory');
+        // return view('survey.addquscategory');
     }
 
     /**
      * Store a newly created resource in storage.
      */
     public function store(StoreQuestionscategoriesRequest $request)
+
     {
-        //
+      try {
+        $validatedata = $request->validated();
+        $insertdata = Questionscategories::create($validatedata);
+        return response()->json(['data' =>  $insertdata]);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**

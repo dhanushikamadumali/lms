@@ -23,4 +23,6 @@ Auth::routes();
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 Route::get('/survey', [SurveyController::class, 'index'])->name('survey');
+
+Route::get('/indexquescat', [QuestionscategoriesController::class, 'index'])->name('indexquescat');
 Route::post('/createquescat', [QuestionscategoriesController::class, 'store'])->name('createquescat');

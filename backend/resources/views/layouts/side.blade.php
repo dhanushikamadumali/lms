@@ -4,6 +4,7 @@
         Survey
       </a>
       <a href="#" class="list-group-item list-group-item-action">Exam</a>
+      <a href="{{route('indexquescat')}}"  class="list-group-item list-group-item-action" aria-current="true" >Question category</a>
       {{-- <a href="#" class="list-group-item list-group-item-action">A third link item</a> --}}
       {{-- <a href="#" class="list-group-item list-group-item-action">A fourth link item</a> --}}
       {{-- <a href="#" class="list-group-item list-group-item-action disabled" tabindex="-1" aria-disabled="true">A disabled link item</a> --}}

@@ -11,7 +11,7 @@ class StoreQuestionscategoriesRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -19,10 +19,10 @@ class StoreQuestionscategoriesRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+    public function rules()
     {
         return [
-            'name'=> 'required|string'
+            'name'=> 'required|string',
         ];
     }
 }
